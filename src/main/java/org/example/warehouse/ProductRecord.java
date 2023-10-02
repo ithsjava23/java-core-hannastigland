@@ -1,20 +1,21 @@
 package org.example.warehouse;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 import java.util.UUID;
 
 public class ProductRecord {
-    private final UUID uuid;
-    private final String name;
-    private final Category category;
-    private final BigDecimal price;
+    private UUID uuid;
+    private String name;
+    private Category category;
+    private BigDecimal price;
+    private boolean changed;
 
     public ProductRecord(UUID uuid, String name, Category category, BigDecimal price) {
         this.uuid = uuid;
         this.name = name;
         this.category = category;
         this.price = price;
+        this.changed = false;
     }
     public UUID uuid() {
         return uuid;
@@ -32,16 +33,13 @@ public class ProductRecord {
         return price;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ProductRecord that = (ProductRecord) o;
-        return Objects.equals(uuid, that.uuid) && Objects.equals(name, that.name) && Objects.equals(category, that.category) && Objects.equals(price, that.price);
+    public void setPrice(BigDecimal modifiedPrice) {
+        if (!this.price.equals(modifiedPrice)) {
+            this.price = modifiedPrice;
+            this.changed = true;
+        }
     }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(uuid, name, category, price);
+    public boolean hasChanged() {
+        return changed;
     }
 }

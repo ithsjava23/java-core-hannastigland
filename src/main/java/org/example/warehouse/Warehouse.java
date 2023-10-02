@@ -5,37 +5,29 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Warehouse {
+    private static final Warehouse instance = new Warehouse();
 
-    public static void main(String[] args) {
-        Warehouse warehouse = Warehouse.getInstance("MyWarehouse");
-        Category fruitCategory = new Category("Fruit");
-        ProductRecord apple = warehouse.addProduct(null, "Apple", fruitCategory, BigDecimal.valueOf(1.99));
-        ProductRecord banana = warehouse.addProduct(null, "Banana", fruitCategory, BigDecimal.valueOf(0.99));
-        ProductRecord orange = warehouse.addProduct(null, "Orange", fruitCategory, BigDecimal.valueOf(1.49));
-        List<ProductRecord> fruitProducts = warehouse.getProductsBy(fruitCategory);
+    private static Map<UUID, ProductRecord> products = new HashMap<>();
+    private static ArrayList<ProductRecord> productList = new ArrayList<>();
+    private String name;
+
+    private Warehouse() {
     }
 
-    private final String name;
-    private final Map<UUID, ProductRecord> products = new HashMap<>();
-    private final Set<UUID> changedProducts = new HashSet<>();
-
-    private static Warehouse instance;
-
-    private Warehouse(String name) {
-        this.name = name;
-    }
     public static Warehouse getInstance() {
-        if (instance == null) {
-            instance = new Warehouse("DefaultWarehouse");
-        }
+        productList.clear();
+        products.clear();
         return instance;
     }
 
     public static Warehouse getInstance(String name) {
-        if (instance == null) {
-            instance = new Warehouse(name);
-        }
-        return instance;
+        Warehouse warehouse = getInstance();
+        warehouse.setName(name);
+        return warehouse;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public boolean isEmpty() {
@@ -43,55 +35,66 @@ public class Warehouse {
     }
 
     public List<ProductRecord> getProducts() {
-        return Collections.unmodifiableList(new ArrayList<>(products.values()));
+        return Collections.unmodifiableList(productList);
     }
 
     public ProductRecord addProduct(UUID uuid, String name, Category category, BigDecimal price) {
+        verifyInput(name, category);
+
         if (uuid == null) {
             uuid = UUID.randomUUID();
         }
+        if (products.containsKey(uuid)) {
+            throw new IllegalArgumentException("Product with that id already exists, use updateProduct for updates.");
+        }
+        if (price == null) {
+            price = BigDecimal.ZERO;
+        }
+        ProductRecord productRecord = new ProductRecord(uuid, name, category, price);
+        products.put(uuid, productRecord);
+        productList.add(productRecord);
+        return productRecord;
+    }
+    public Optional<ProductRecord> getProductById(UUID uuid) {
+        return Optional.ofNullable(products.get(uuid));
+    }
+    public void updateProductPrice(UUID uuid, BigDecimal newPrice) {
+        if (!products.containsKey(uuid)) {
+            throw new IllegalArgumentException("Product with that id doesn't exist.");
+        }
+        products.get(uuid).setPrice(newPrice);
+    }
+
+    public List<ProductRecord> getChangedProducts() {
+        return products.values().stream()
+                .filter(ProductRecord::hasChanged)
+                .collect(Collectors.toList());
+    }
+
+    public Map <Category, List<ProductRecord>> getProductsGroupedByCategories() {
+        Map<Category, List<ProductRecord>> productGroups = new HashMap<>();
+        for (ProductRecord product : products.values()) {
+            productGroups.computeIfAbsent(product.category(), k -> new ArrayList<>()).add(product);
+        }
+        return Collections.unmodifiableMap(productGroups);
+    }
+
+    public List<ProductRecord> getProductsBy(Category category) {
+        List<ProductRecord> categorizedProductList = new ArrayList<>();
+        for (ProductRecord product : products.values()) {
+            if (product.category().equals(category)) {
+                categorizedProductList.add(product);
+            }
+        }
+        return Collections.unmodifiableList(categorizedProductList);
+    }
+    private void verifyInput(String name, Category category) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("Product name can't be null or empty.");
         }
         if (category == null) {
             throw new IllegalArgumentException("Category can't be null.");
         }
-        if (products.containsKey(uuid)) {
-            throw new IllegalArgumentException("Product with that id already exists, use updateProduct for updates.");
-        }
-        ProductRecord productRecord = new ProductRecord(uuid, name, category, price);
-        products.put(uuid, productRecord);
-        return productRecord;
     }
 
-    public void updateProductPrice(UUID productId, BigDecimal newPrice) {
-        if (!products.containsKey(productId)) {
-            throw new IllegalArgumentException("Product with that id doesn't exist.");
-        }
-        ProductRecord product = products.get(productId);
-        product = new ProductRecord(product.uuid(), product.name(), product.category(), newPrice);
-        products.put(productId, product);
-        changedProducts.add(productId);
-    }
-
-    public List<ProductRecord> getChangedProducts() {
-        return changedProducts.stream()
-                .map(products::get)
-                .collect(Collectors.toList());
-    }
-
-    public Map <Category, List<ProductRecord>> getProductsGroupedByCategories() {
-        return products.values().stream()
-                .collect(Collectors.groupingBy(ProductRecord::category));
-    }
-
-    public List<ProductRecord> getProductsBy(Category category) {
-        return products.values().stream()
-                .filter(product -> product.category().equals(category))
-                .collect(Collectors.toList());
-    }
-
-    public Optional<ProductRecord> getProductById(UUID productId) {
-        return Optional.ofNullable(products.get(productId));
-    }
 }
