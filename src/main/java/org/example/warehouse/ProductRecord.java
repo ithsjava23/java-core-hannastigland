@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public class ProductRecord {
-    private UUID uuid;
-    private String name;
-    private Category category;
+    private final UUID uuid;
+    private final String name;
+    private final Category category;
     private BigDecimal price;
     private boolean changed;
 
@@ -18,24 +18,20 @@ public class ProductRecord {
         this.changed = false;
     }
     public UUID uuid() {
-        return uuid;
-    }
-
-    public String name() {
-        return name;
+        return this.uuid;
     }
 
     public Category category() {
-        return category;
+        return this.category;
     }
 
     public BigDecimal price() {
-        return price;
+        return this.price;
     }
 
-    public void setPrice(BigDecimal modifiedPrice) {
-        if (!this.price.equals(modifiedPrice)) {
-            this.price = modifiedPrice;
+    public void setPrice(BigDecimal price) {
+        if (!this.price.equals(price)) {
+            this.price = price;
             this.changed = true;
         }
     }
